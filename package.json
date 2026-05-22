@@ -1,0 +1,12 @@
+{
+  "name": "aws-ecs-web-app",
+  "version": "1.0.0",
+  "description": "Simple Express web app — Phase 1 of AWS ECS deployment learning",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

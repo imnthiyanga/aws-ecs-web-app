@@ -1,0 +1,12 @@
+# Installed packages — always regenerated with `npm install`
+node_modules/
+
+# Local environment variables (secrets, ports, etc.) — never commit these
+.env
+
+# macOS metadata
+.DS_Store
+
+# Log files
+*.log
+npm-debug.log*
