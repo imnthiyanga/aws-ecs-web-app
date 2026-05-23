@@ -1,0 +1,68 @@
+{
+    "containerDefinitions":  [
+                                 {
+                                     "name":  "web-app",
+                                     "image":  "280196252387.dkr.ecr.ap-southeast-1.amazonaws.com/ectomuch/ecs-web-app@sha256:46272976e779472b5e05a1d7371ad45129e2313c8532b4ef87d2202b1602686b",
+                                     "cpu":  0,
+                                     "portMappings":  [
+                                                          {
+                                                              "containerPort":  3000,
+                                                              "hostPort":  3000,
+                                                              "protocol":  "tcp",
+                                                              "name":  "web-app-3000-tcp",
+                                                              "appProtocol":  "http"
+                                                          }
+                                                      ],
+                                     "essential":  true,
+                                     "environment":  [
+
+                                                     ],
+                                     "environmentFiles":  [
+
+                                                          ],
+                                     "mountPoints":  [
+
+                                                     ],
+                                     "volumesFrom":  [
+
+                                                     ],
+                                     "ulimits":  [
+
+                                                 ],
+                                     "logConfiguration":  {
+                                                              "logDriver":  "awslogs",
+                                                              "options":  {
+                                                                              "awslogs-group":  "/ecs/ecs-web-app-task",
+                                                                              "awslogs-create-group":  "true",
+                                                                              "awslogs-region":  "ap-southeast-1",
+                                                                              "awslogs-stream-prefix":  "ecs"
+                                                                          },
+                                                              "secretOptions":  [
+
+                                                                                ]
+                                                          },
+                                     "systemControls":  [
+
+                                                        ]
+                                 }
+                             ],
+    "family":  "ecs-web-app-task",
+    "executionRoleArn":  "arn:aws:iam::280196252387:role/ecsTaskExecutionRole",
+    "networkMode":  "awsvpc",
+    "volumes":  [
+
+                ],
+    "placementConstraints":  [
+
+                             ],
+    "runtimePlatform":  {
+                            "cpuArchitecture":  "X86_64",
+                            "operatingSystemFamily":  "LINUX"
+                        },
+    "requiresCompatibilities":  [
+                                    "FARGATE"
+                                ],
+    "cpu":  "256",
+    "memory":  "512",
+    "enableFaultInjection":  false
+}

@@ -143,8 +143,41 @@ docker images my-web-app
 
 ---
 
+## Deployment (CI/CD — Phase 4)
+
+Deployments are fully automated via GitHub Actions.
+
+### How it works
+
+Every push to the `main` branch triggers `.github/workflows/deploy.yml`, which:
+
+1. Builds the Docker image on a GitHub-hosted runner
+2. Pushes it to **Amazon ECR** with two tags: `:latest` and `:<short-commit-sha>`
+3. Injects the new image URI into `task-definition.json`
+4. Registers a new ECS task definition revision
+5. Performs a **rolling update** on the ECS service and waits for health checks to pass
+
+### Triggering a deploy
+
+| How | When |
+|-----|------|
+| Automatic | Push any commit to `main` |
+| Manual | GitHub → **Actions** tab → "Build and Deploy to AWS ECS" → **Run workflow** |
+
+### Monitoring a deployment
+
+1. Go to your repo on GitHub → **Actions** tab
+2. Click the running workflow — you'll see each step in real time
+3. Step 6 ("Deploy to ECS service") holds until ECS reports all tasks healthy
+4. Total time from push to live: **~3 minutes**
+
+### After deployment
+
+Once the workflow goes green, your updated app is live at your ALB DNS name.  
+To find it: AWS Console → EC2 → Load Balancers → copy the DNS name.
+
+---
+
 ## Coming next
 
-- **Phase 3** — Push the image to Amazon ECR
-- **Phase 4** — CI/CD pipeline (GitHub Actions)
 - **Phase 5** — Deploy to AWS ECS (Fargate)
