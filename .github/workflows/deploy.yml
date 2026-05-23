@@ -1,0 +1,111 @@
+name: Build and Deploy to AWS ECS
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+# This workflow runs automatically when you push to main, OR you can kick it
+# off manually from the GitHub Actions tab (useful for re-deploys without code
+# changes or for testing the pipeline itself).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# ── Jobs ──────────────────────────────────────────────────────────────────────
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest  # GitHub-hosted runner with Docker pre-installed
+
+    steps:
+
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      # Clones the repository onto the runner so subsequent steps have access
+      # to the Dockerfile, task-definition.json, and source code.
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # ── 2. AWS credentials ───────────────────────────────────────────────────
+      # Injects temporary AWS credentials into the runner environment.
+      # All subsequent AWS CLI and SDK calls (docker push, ECS deploy, etc.)
+      # will use these credentials automatically.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      # ── 3. ECR login ─────────────────────────────────────────────────────────
+      # Authenticates Docker with your private ECR registry.
+      # The `registry` output (e.g. 280196252387.dkr.ecr.ap-southeast-1.amazonaws.com)
+      # is captured as a step output and referenced in the next step so the
+      # image URI is never hardcoded.
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── 4. Build and push ────────────────────────────────────────────────────
+      # Builds the Docker image from the Dockerfile in the repo root, then
+      # pushes it to ECR with TWO tags:
+      #
+      #   :abc1234  (short 7-char commit SHA)
+      #     → Every image is traceable to the exact commit that produced it.
+      #       If something breaks in production you can run `docker inspect`
+      #       on the container and immediately know which commit to blame.
+      #
+      #   :latest
+      #     → A stable pointer always pointing to the most recent build.
+      #       Useful for quick manual pulls; ECS itself uses the SHA tag.
+      #
+      # The SHA-tagged image URI is exported as a step output so the render
+      # step below can inject it into the task definition.
+      - name: Build, tag, and push image to ECR
+        id: build-image
+        env:
+          REGISTRY:   ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: ectomuch/ecs-web-app
+          IMAGE_TAG:  ${{ github.sha }}
+        run: |
+          SHORT_SHA=${IMAGE_TAG::7}
+          IMAGE_URI=$REGISTRY/$REPOSITORY:$SHORT_SHA
+
+          docker build -t $IMAGE_URI .
+          docker tag  $IMAGE_URI $REGISTRY/$REPOSITORY:latest
+
+          docker push $IMAGE_URI
+          docker push $REGISTRY/$REPOSITORY:latest
+
+          # Pass the SHA-tagged URI to subsequent steps via GITHUB_OUTPUT
+          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+      # ── 5. Render task definition ────────────────────────────────────────────
+      # Reads task-definition.json, replaces the `image` field for the container
+      # named "web-app" with the URI of the image we just pushed, and writes
+      # the result to a temporary file on the runner.
+      #
+      # WHY a separate render step instead of editing the JSON manually?
+      # The action handles all the ECS JSON structure for you and outputs a
+      # path to the modified file that the deploy step reads in the next step.
+      - name: Render ECS task definition with new image
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition:  task-definition.json
+          container-name:   web-app
+          image:            ${{ steps.build-image.outputs.image }}
+
+      # ── 6. Deploy ────────────────────────────────────────────────────────────
+      # Registers the rendered file as a NEW task definition revision in ECS,
+      # then tells the ECS service to replace its running tasks with the new
+      # revision using a rolling update.
+      #
+      # wait-for-service-stability: true
+      #   Makes the workflow WAIT until ECS reports all tasks healthy before
+      #   marking the job green. If health checks fail, the workflow fails here
+      #   and you get a clear red signal in the Actions tab — not a silent
+      #   broken deploy you discover hours later.
+      - name: Deploy to ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service:         ecs-web-app-service
+          cluster:         ecs-web-app-newcluster
+          wait-for-service-stability: true
