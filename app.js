@@ -28,7 +28,7 @@ app.get('/', (req, res) => {
   </style>
 </head>
 <body>
-  <h1>Welcome from app! 🚀</h1>
+  <h1>Welcome To The AWS ECS Web App! 🚀</h1>
   <p>Server time: <strong>${serverTime}</strong></p>
 </body>
 </html>

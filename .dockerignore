@@ -1,0 +1,21 @@
+# Dependencies — Docker installs these fresh inside the image via npm ci.
+# Sending node_modules in the build context would be slow AND could shadow
+# the correctly-installed production modules.
+node_modules/
+
+# Git history — irrelevant inside a container, can be hundreds of MB
+.git/
+.gitignore
+
+# Local environment variables — never bake secrets into an image
+.env
+*.env
+
+# Docs and meta-files — not needed at runtime
+README.md
+Dockerfile
+.dockerignore
+
+# OS and editor noise
+.DS_Store
+*.log
