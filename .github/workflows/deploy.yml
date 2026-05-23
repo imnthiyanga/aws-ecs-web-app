@@ -106,6 +106,6 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service:         ecs-web-app-service
+          service:         ecs-web-app-task-service-nu2gwwb0 
           cluster:         ecs-web-app-newcluster
           wait-for-service-stability: true
