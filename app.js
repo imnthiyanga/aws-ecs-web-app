@@ -30,7 +30,6 @@ app.get('/', (req, res) => {
 <body>
   <h1>Welcome To The AWS ECS Web App! 🚀</h1>
   <h2>Here CI/CD! Deployed automatically.</h2>
-  <h1> Testing Changes<h1>
   <p>Server time: <strong>${serverTime}</strong></p>
 </body>
 </html>
